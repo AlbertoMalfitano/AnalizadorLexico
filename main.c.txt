@@ -1,0 +1,97 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+int nivel_indentado = 0;
+
+void imprimir_tab(FILE *salida) {
+    for (int i = 0; i < nivel_indentado; i++) {
+        fprintf(salida, "\t");
+    }
+}
+
+void imprimir_token(FILE *salida, const char *token) {
+    if (strcmp(token, "{") == 0) {
+        imprimir_tab(salida); fprintf(salida, "L_LLAVE\n");
+        nivel_indentado++;
+    }
+    else if (strcmp(token, "}") == 0) {
+        nivel_indentado--;
+        imprimir_tab(salida); fprintf(salida, "R_LLAVE\n");
+    }
+    else if (strcmp(token, "[") == 0) {
+        imprimir_tab(salida); fprintf(salida, "L_CORCHETE\n");
+        nivel_indentado++;
+    }
+    else if (strcmp(token, "]") == 0) {
+        nivel_indentado--;
+        imprimir_tab(salida); fprintf(salida, "R_CORCHETE\n");
+    }
+    else {
+        imprimir_tab(salida);
+        if (strcmp(token, ":") == 0) fprintf(salida, "DOS_PUNTOS\n");
+        else if (strcmp(token, ",") == 0) fprintf(salida, "COMA\n");
+        else if (strcasecmp(token, "true") == 0) fprintf(salida, "PR_TRUE\n");
+        else if (strcasecmp(token, "false") == 0) fprintf(salida, "PR_FALSE\n");
+        else if (strcasecmp(token, "null") == 0) fprintf(salida, "PR_NULL\n");
+        else if (token[0] == '"') fprintf(salida, "STRING\n");
+        else {
+            int esNumero = 1;
+            for (int i = 0; token[i]; i++) {
+                if (!isdigit(token[i]) && token[i] != '.' && token[i] != 'e' && token[i] != 'E' && token[i] != '+' && token[i] != '-') {
+                    esNumero = 0;
+                    break;
+                }
+            }
+            if (esNumero) fprintf(salida, "NUMBER\n");
+            else fprintf(salida, "ERROR_TOKEN\n");
+        }
+    }
+}
+
+void analizar_linea(FILE *salida, char *linea) {
+    char *p = linea;
+    while (*p) {
+        if (isspace(*p)) {
+            p++;
+        } else if (*p == '[' || *p == ']' || *p == '{' || *p == '}' || *p == ':' || *p == ',') {
+            char simbolo[2] = {*p, '\0'};
+            imprimir_token(salida, simbolo);
+            p++;
+        } else if (*p == '"') {
+            char buffer[1024] = {0};
+            char *inicio = p++;
+            while (*p && *p != '"') p++;
+            if (*p == '"') p++;
+            strncpy(buffer, inicio, p - inicio);
+            imprimir_token(salida, buffer);
+        } else {
+            char buffer[1024] = {0};
+            int i = 0;
+            while (*p && !isspace(*p) && *p != ',' && *p != ']' && *p != '}' && *p != ':') {
+                buffer[i++] = *p++;
+            }
+            buffer[i] = '\0';
+            imprimir_token(salida, buffer);
+        }
+    }
+}
+
+int main() {
+    FILE *entrada = fopen("fuente.txt", "r");
+    FILE *salida = fopen("output.txt", "w");
+    if (!entrada || !salida) {
+        printf("No se pudo abrir el archivo.\n");
+        return 1;
+    }
+
+    char linea[1024];
+    while (fgets(linea, sizeof(linea), entrada)) {
+        analizar_linea(salida, linea);
+    }
+
+    fclose(entrada);
+    fclose(salida);
+    return 0;
+}
