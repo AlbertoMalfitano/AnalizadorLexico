@@ -1,4 +1,5 @@
 # AnalizadorLexico
 
+Integrantes
 Alberto de Jesus Malfitano Antunez 
-C.I: 6153760
+Jorge Nicolas Peralta Rolon
